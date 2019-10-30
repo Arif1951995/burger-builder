@@ -15,19 +15,15 @@ const INGREDIENTS_PRICES = {
     cheese: 0.4
 }
 
- class BurgerBuilder extends Component {
+class BurgerBuilder extends Component {
 
     state = {
-        ingredients: {
-            meat: 0,
-            bacon: 0,
-            cheese: 0,
-            salad: 0,
-        },
+        ingredients: null,
         totalPrice: 4,
         purchasable: false,
         purchasing: false,
-        loading: false
+        loading: false,
+        error: false
     }
 
 
@@ -38,7 +34,6 @@ const INGREDIENTS_PRICES = {
         this.setState({
             purchasable: sum > 0
         })
-        console.log(sum)
     }
 
     addIngrediendHandler = (type) => {
@@ -78,14 +73,14 @@ const INGREDIENTS_PRICES = {
     }
 
     canclePurchaseHandler = () => {
-        this.setState({ purchasing: false});
+        this.setState({ purchasing: false });
     }
     continuePurchaseHandler = () => {
         //alert('you continued')
         this.setState({ loading: true })
         const order = {
             ingredients: this.state.ingredients,
-            price: this.state.totalPrice,
+            price: this.state.totalPrice.toFixed(2),
             customer: {
                 name: 'test123',
                 address: 'street123',
@@ -99,44 +94,54 @@ const INGREDIENTS_PRICES = {
         axios.post('/orders.json', order)
             .then(response => {
                 this.setState({ loading: false, purchasing: false })
-                console.log(response)
 
             })
             .catch(err => {
                 this.setState({ loading: false, purchasing: false })
-                console.log(err)
 
             })
 
+
+
+    }
+    componentDidMount() {
+        axios.get('https://burger-builder-be307.firebaseio.com/ingredients.json')
+            .then(response => {
+                this.setState({
+                    ingredients: response.data
+                })
+            })
+            .catch(err => {
+                this.setState({ error: true })
+
+            });
     }
 
     render() {
-        { console.log(this.state.loading) }
-        let orderSummary = <OrderSummary
-            ingredients={this.state.ingredients}
-            purchaseCancelled={this.canclePurchaseHandler}
-            purchaseContinued={this.continuePurchaseHandler}
-            price={this.state.totalPrice} />;
-        if (this.state.loading) {
-            orderSummary = <Spinner />
-        }
+
+
+
+
+
+
 
         const desabledInfo = {
             ...this.state.ingredients
         }
         for (let key in desabledInfo) {
             desabledInfo[key] = desabledInfo[key] <= 0
-            console.log(desabledInfo[key])
         }
+        let orderSummary = null;
+        let burger = <Spinner />;
 
-        return (
-            <HOC>
-                <Modal show={this.state.purchasing}
-                    backdropCLicked={this.canclePurchaseHandler}>
-                    {orderSummary}
+        if (this.state.ingredients) {
+            orderSummary = <OrderSummary
+                ingredients={this.state.ingredients}
+                purchaseCancelled={this.canclePurchaseHandler}
+                purchaseContinued={this.continuePurchaseHandler}
+                price={this.state.totalPrice} />;
 
-                </Modal>
-
+            burger = <HOC>
                 <Burger ingredients={this.state.ingredients} />
                 <BuildControls
                     addIngrediend={this.addIngrediendHandler}
@@ -146,6 +151,25 @@ const INGREDIENTS_PRICES = {
                     disabledOrder={!this.state.purchasable}
                     ordered={this.purchaseHandler}
                 />
+            </HOC>
+
+        }
+        if (this.state.loading) {
+            orderSummary = <Spinner />
+        }
+        if (this.state.error) {
+            burger = <h3 style={{ textAlign: 'center' }}>Network Error</h3>
+        }
+        return (
+
+            <HOC>
+                <Modal show={this.state.purchasing}
+                    backdropCLicked={this.canclePurchaseHandler}>
+                    {orderSummary}
+
+                </Modal>
+                {burger}
+
 
             </HOC>
         )

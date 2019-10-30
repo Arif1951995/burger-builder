@@ -11,7 +11,6 @@ let ingredients = Object.keys(props.ingredients).map(e => {
         return <Ingredient key={e + i} type={e} />
     })
 }).reduce((arr, el) => {
-    console.log(el)
     return arr.concat(el)
 }, []);
     return (
